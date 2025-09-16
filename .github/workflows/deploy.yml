@@ -1,0 +1,71 @@
+name: Deploy TTS Application
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  STACK_NAME: tts-app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy CloudFormation stack
+      run: |
+        aws cloudformation deploy \
+          --template-file simple-template.yaml \
+          --stack-name ${{ env.STACK_NAME }} \
+          --capabilities CAPABILITY_IAM \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Update Lambda function
+      run: |
+        zip lambda.zip index.js
+        aws lambda update-function-code \
+          --function-name tts-function \
+          --zip-file fileb://lambda.zip \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Get stack outputs
+      id: stack-outputs
+      run: |
+        API_ENDPOINT=$(aws cloudformation describe-stacks \
+          --stack-name ${{ env.STACK_NAME }} \
+          --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" \
+          --output text \
+          --region ${{ env.AWS_REGION }})
+        
+        WEBSITE_BUCKET=$(aws cloudformation describe-stacks \
+          --stack-name ${{ env.STACK_NAME }} \
+          --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucket'].OutputValue" \
+          --output text \
+          --region ${{ env.AWS_REGION }})
+        
+        echo "api-endpoint=$API_ENDPOINT" >> $GITHUB_OUTPUT
+        echo "website-bucket=$WEBSITE_BUCKET" >> $GITHUB_OUTPUT
+
+    - name: Update and deploy website
+      run: |
+        sed "s|API_ENDPOINT_PLACEHOLDER|${{ steps.stack-outputs.outputs.api-endpoint }}|g" index.html > index-updated.html
+        aws s3 cp index-updated.html s3://${{ steps.stack-outputs.outputs.website-bucket }}/index.html \
+          --content-type "text/html" \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Output website URL
+      run: |
+        echo "Website URL: http://${{ steps.stack-outputs.outputs.website-bucket }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"

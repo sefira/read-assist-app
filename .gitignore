@@ -1,0 +1,19 @@
+# AWS
+*.zip
+*.txt
+*-updated.html
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+temp/
+tmp/

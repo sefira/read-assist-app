@@ -127,6 +127,13 @@
 │                                                                                 │
 │  • Content Security Policy (CSP) Headers                                       │
 │  • XSS Prevention with Safe DOM Manipulation                                   │
+│  • Input Sanitization and Validation                                           │
+│  • Rate Limiting (2 seconds between requests)                                  │
+│  • Character Limit Enforcement (3000 chars)                                    │
+│  • Pre-signed URLs for Secure S3 Access                                       │
+│  • IAM Least Privilege Permissions                                             │
+└─────────────────────────────────────────────────────────────────────────────────┘
+``` XSS Prevention with Safe DOM Manipulation                                   │
 │  • Input Sanitization (HTML tag removal)                                       │
 │  • Rate Limiting (2 seconds between requests)                                  │
 │  • Character Limit Enforcement (3000 characters)                               │

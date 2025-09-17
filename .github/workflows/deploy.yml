@@ -31,7 +31,8 @@ jobs:
           --template-file simple-template.yaml \
           --stack-name ${{ env.STACK_NAME }} \
           --capabilities CAPABILITY_IAM \
-          --region ${{ env.AWS_REGION }}
+          --region ${{ env.AWS_REGION }} \
+          --no-fail-on-empty-changeset
 
     - name: Update Lambda function
       run: |

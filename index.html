@@ -256,7 +256,6 @@
 
     <script>
         const API_ENDPOINT = 'API_ENDPOINT_PLACEHOLDER';
-        const API_KEY = 'API_KEY_PLACEHOLDER';
         let lastRequest = 0;
         const RATE_LIMIT = 2000; 
 
@@ -301,8 +300,7 @@
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'X-API-Key': API_KEY
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ text, voiceId: voice })
                 });

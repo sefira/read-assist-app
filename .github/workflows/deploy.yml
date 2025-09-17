@@ -50,12 +50,6 @@ jobs:
           --output text \
           --region ${{ env.AWS_REGION }})
         
-        API_KEY=$(aws cloudformation describe-stacks \
-          --stack-name ${{ env.STACK_NAME }} \
-          --query "Stacks[0].Outputs[?OutputKey=='ApiKey'].OutputValue" \
-          --output text \
-          --region ${{ env.AWS_REGION }})
-        
         WEBSITE_BUCKET=$(aws cloudformation describe-stacks \
           --stack-name ${{ env.STACK_NAME }} \
           --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucket'].OutputValue" \
@@ -63,20 +57,16 @@ jobs:
           --region ${{ env.AWS_REGION }})
         
         echo "api-endpoint=$API_ENDPOINT" >> $GITHUB_OUTPUT
-        echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
         echo "website-bucket=$WEBSITE_BUCKET" >> $GITHUB_OUTPUT
 
     - name: Update and deploy website
       run: |
-        # Get the API endpoint and key
+        # Get the API endpoint
         API_ENDPOINT="${{ steps.stack-outputs.outputs.api-endpoint }}"
-        API_KEY="${{ steps.stack-outputs.outputs.api-key }}"
         echo "API Endpoint: $API_ENDPOINT"
-        echo "API Key: ${API_KEY:0:10}..." # Only show first 10 chars for security
         
-        # Replace placeholders
+        # Replace placeholder
         sed -i "s|API_ENDPOINT_PLACEHOLDER|$API_ENDPOINT|g" index.html
-        sed -i "s|API_KEY_PLACEHOLDER|$API_KEY|g" index.html
         
         # Extract domain from API endpoint for CSP
         API_DOMAIN=$(echo "$API_ENDPOINT" | sed 's|https://||' | sed 's|/.*||')

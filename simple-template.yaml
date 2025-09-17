@@ -180,7 +180,6 @@ Resources:
       ResourceId: !Ref TTSResource
       HttpMethod: POST
       AuthorizationType: NONE
-      ApiKeyRequired: true
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
@@ -225,34 +224,7 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TTSApi}/*/*'
 
-  # API Key for security
-  TTSApiKey:
-    Type: AWS::ApiGateway::ApiKey
-    Properties:
-      Name: tts-api-key
-      Enabled: true
 
-  # Usage Plan with throttling
-  TTSUsagePlan:
-    Type: AWS::ApiGateway::UsagePlan
-    DependsOn: TTSDeployment
-    Properties:
-      UsagePlanName: tts-usage-plan
-      Description: Usage plan for TTS API
-      Throttle:
-        RateLimit: 10
-        BurstLimit: 20
-      ApiStages:
-        - ApiId: !Ref TTSApi
-          Stage: prod
-
-  # Link API Key to Usage Plan
-  TTSUsagePlanKey:
-    Type: AWS::ApiGateway::UsagePlanKey
-    Properties:
-      KeyId: !Ref TTSApiKey
-      KeyType: API_KEY
-      UsagePlanId: !Ref TTSUsagePlan
 
 Outputs:
   WebsiteURL:
@@ -270,7 +242,3 @@ Outputs:
   ApiEndpoint:
     Description: API Gateway endpoint URL
     Value: !Sub 'https://${TTSApi}.execute-api.${AWS::Region}.amazonaws.com/prod/tts'
-    
-  ApiKey:
-    Description: API Key for secure access
-    Value: !Ref TTSApiKey

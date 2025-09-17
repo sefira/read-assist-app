@@ -1,19 +1,6 @@
-# AWS
-*.zip
-*.txt
-*-updated.html
-
-# Logs
+node_modules/
 *.log
-
-# OS
+.env
 .DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-
-# Temporary files
-temp/
-tmp/
+lambda.zip
+index-deploy.html

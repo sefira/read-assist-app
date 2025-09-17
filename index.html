@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎵 VoiceForge - Text to Speech</title>
+    <title>🎵 ReadAssist - Text to Speech</title>
     <style>
         * {
             margin: 0;
@@ -225,7 +225,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎵 VoiceForge</h1>
+            <h1>🎵 ReadAssist</h1>
             <p>Transform your text into natural-sounding speech</p>
         </div>
         
@@ -253,7 +253,7 @@
     </div>
 
     <script>
-        const API_ENDPOINT = 'API_ENDPOINT_PLACEHOLDER';
+        const API_ENDPOINT = 'https://35cwgrdmfe.execute-api.us-east-1.amazonaws.com/prod/tts';
 
         async function convertText() {
             const text = document.getElementById('textInput').value;

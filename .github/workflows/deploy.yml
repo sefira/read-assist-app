@@ -61,10 +61,13 @@ jobs:
 
     - name: Update and deploy website
       run: |
-           # Just upload the file as-is since we hardcoded the endpoint
-              aws s3 cp index.html s3://${{ steps.stack-outputs.outputs.website-bucket }}/index.html \
-                --content-type "text/html" \
-                --region ${{ env.AWS_REGION }}
+        # Replace API endpoint placeholder with actual endpoint
+        sed -i "s|API_ENDPOINT_PLACEHOLDER|${{ steps.stack-outputs.outputs.api-endpoint }}|g" index.html
+        
+        # Upload updated file to S3
+        aws s3 cp index.html s3://${{ steps.stack-outputs.outputs.website-bucket }}/index.html \
+          --content-type "text/html" \
+          --region ${{ env.AWS_REGION }}
 
     - name: Output website URL
       run: |

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎵 ReadAssist - Text to Speech</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://35cwgrdmfe.execute-api.us-east-1.amazonaws.com; media-src 'self' https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://fcl7xdsfai.execute-api.us-east-1.amazonaws.com https://*.amazonaws.com; media-src 'self' https: data:;">
     <style>
         * {
             margin: 0;
@@ -255,7 +255,7 @@
     </div>
 
     <script>
-        const API_ENDPOINT = 'API_ENDPOINT_PLACEHOLDER';
+        const API_ENDPOINT = 'https://fcl7xdsfai.execute-api.us-east-1.amazonaws.com/prod/tts';
         let lastRequest = 0;
         const RATE_LIMIT = 2000; 
 
@@ -297,6 +297,7 @@
             showResult('Converting your text to speech...', 'loading');
             
             try {
+                console.log('Making request to:', API_ENDPOINT);
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: { 
@@ -305,11 +306,15 @@
                     body: JSON.stringify({ text, voiceId: voice })
                 });
                 
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
                 
                 const data = await response.json();
+                console.log('Response data:', data);
                 
                 if (!data.audioUrl) {
                     throw new Error('No audio URL received from server');
@@ -327,8 +332,9 @@
                     </a>
                 `, 'success');
             } catch (error) {
-                if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    showResult('Network connection failed. Please check your internet connection.', 'error');
+                console.error('Fetch error:', error);
+                if (error.name === 'TypeError') {
+                    showResult('CORS or network error. Check browser console for details.', 'error');
                 } else {
                     showResult('Error: ' + error.message, 'error');
                 }

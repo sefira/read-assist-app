@@ -7,14 +7,12 @@ A serverless text-to-speech application with translation capabilities built with
 - **Frontend**: S3 static website hosting
 - **Backend**: API Gateway + Lambda
 - **TTS Engine**: Amazon Polly
-- **Translation**: Amazon Translate
 - **Storage**: S3 bucket for audio files
 - **Deployment**: GitHub Actions CI/CD
 
 ## Features
 
 - ✅ Convert text to speech using Amazon Polly
-- ✅ **NEW**: Translate text to 8 languages before TTS conversion
 - ✅ Multiple voice options (Joanna, Matthew, Amy, Brian)
 - ✅ In-browser audio playback
 - ✅ Download MP3 files
@@ -26,17 +24,6 @@ A serverless text-to-speech application with translation capabilities built with
   - Input sanitization and validation
   - Rate limiting (2 seconds between requests)
   - Character limit enforcement (3000 chars)
-
-## Translation Support
-
-- 🇪🇸 Spanish
-- 🇫🇷 French
-- 🇩🇪 German
-- 🇮🇹 Italian
-- 🇵🇹 Portuguese
-- 🇯🇵 Japanese
-- 🇰🇷 Korean
-- 🇨🇳 Chinese
 
 ## Deployment
 
@@ -66,11 +53,6 @@ A serverless text-to-speech application with translation capabilities built with
 curl -X POST https://your-api-endpoint/prod/tts \
   -H "Content-Type: application/json" \
   -d '{"text":"Hello world","voiceId":"Joanna"}'
-
-# Test with translation
-curl -X POST https://your-api-endpoint/prod/tts \
-  -H "Content-Type: application/json" \
-  -d '{"text":"Hello world","voiceId":"Joanna","translateTo":"es"}'
 ```
 
 ## Files
@@ -85,7 +67,6 @@ curl -X POST https://your-api-endpoint/prod/tts \
 - Amazon API Gateway
 - AWS Lambda
 - Amazon Polly
-- **Amazon Translate** (NEW)
 - Amazon S3
 - AWS CloudFormation
 - AWS IAM

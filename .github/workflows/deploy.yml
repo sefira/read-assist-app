@@ -60,16 +60,11 @@ jobs:
         echo "website-bucket=$WEBSITE_BUCKET" >> $GITHUB_OUTPUT
 
     - name: Update and deploy website
-      env:
-        API_ENDPOINT: ${{ steps.stack-outputs.outputs.api-endpoint }}
-        WEBSITE_BUCKET: ${{ steps.stack-outputs.outputs.website-bucket }}
       run: |
-        # Create updated HTML with correct API endpoint
-        envsubst < index.html > index-updated.html
-        # Upload to S3
-        aws s3 cp index-updated.html s3://$WEBSITE_BUCKET/index.html \
-          --content-type "text/html" \
-          --region ${{ env.AWS_REGION }}
+           # Just upload the file as-is since we hardcoded the endpoint
+              aws s3 cp index.html s3://${{ steps.stack-outputs.outputs.website-bucket }}/index.html \
+                --content-type "text/html" \
+                --region ${{ env.AWS_REGION }}
 
     - name: Output website URL
       run: |

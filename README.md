@@ -18,6 +18,12 @@ A serverless text-to-speech application built with AWS services.
 - ✅ Download MP3 files
 - ✅ Serverless architecture
 - ✅ Automated deployment pipeline
+- ✅ **Security Features**:
+  - Content Security Policy (CSP) headers
+  - XSS prevention with safe DOM manipulation
+  - Input sanitization and validation
+  - Rate limiting (2 seconds between requests)
+  - Character limit enforcement (3000 chars)
 
 ## Deployment
 

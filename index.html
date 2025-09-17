@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎵 ReadAssist - Text to Speech</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
     <style>
         * {
             margin: 0;
@@ -254,6 +255,8 @@
 
     <script>
         const API_ENDPOINT = 'https://35cwgrdmfe.execute-api.us-east-1.amazonaws.com/prod/tts';
+        let lastRequest = 0;
+        const RATE_LIMIT = 2000; 
 
         async function convertText() {
             const text = document.getElementById('textInput').value;
@@ -264,9 +267,21 @@
                 resultDiv.innerHTML = 'Error: API endpoint not configured. Please deploy the application first.';
                 return;
             }
-            
+
+            if (Date.now() - lastRequest < RATE_LIMIT) {
+                showResult('Please wait 2 seconds between requests.', 'error');
+                return;
+            }
+            lastRequest = Date.now();
+
             if (!text.trim()) {
                 showResult('Please enter some text to convert.', 'error');
+                return;
+            }
+            
+            const sanitizedText = text.replace(/<[^>]*>/g, '').trim();
+            if (sanitizedText !== text.trim()) {
+                showResult('Invalid characters detected in input.', 'error');
                 return;
             }
 
@@ -324,7 +339,31 @@
         function showResult(message, type) {
             const resultDiv = document.getElementById('result');
             resultDiv.className = type;
-            resultDiv.innerHTML = message;
+            
+            if (type === 'success' && message.includes('<div class="audio-player">')) {
+                // For audio content, create elements safely
+                const audioUrl = message.match(/src="([^"]+)"/)[1];
+                resultDiv.innerHTML = '';
+                
+                const audioDiv = document.createElement('div');
+                audioDiv.className = 'audio-player';
+                
+                const audio = document.createElement('audio');
+                audio.controls = true;
+                audio.src = audioUrl;
+                audioDiv.appendChild(audio);
+                
+                const downloadBtn = document.createElement('a');
+                downloadBtn.href = audioUrl;
+                downloadBtn.download = 'speech.mp3';
+                downloadBtn.className = 'download-btn';
+                downloadBtn.textContent = '💾 Download MP3';
+                
+                resultDiv.appendChild(audioDiv);
+                resultDiv.appendChild(downloadBtn);
+            } else {
+                resultDiv.textContent = message;
+            }
         }
 
         // Character counter

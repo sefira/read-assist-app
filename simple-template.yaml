@@ -235,6 +235,7 @@ Resources:
   # Usage Plan with throttling
   TTSUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
+    DependsOn: TTSDeployment
     Properties:
       UsagePlanName: tts-usage-plan
       Description: Usage plan for TTS API

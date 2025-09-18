@@ -41,9 +41,8 @@ jobs:
         set -e
         if [ -f index.js ]; then
           zip lambda.zip index.js
-          LAMBDA_FUNCTION="${{ steps.stack-outputs.outputs.lambda-function }}"
           aws lambda update-function-code \
-            --function-name "$LAMBDA_FUNCTION" \
+            --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
             --zip-file fileb://lambda.zip \
             --region ${{ env.AWS_REGION }} || exit 1
         else
@@ -58,28 +57,16 @@ jobs:
           --stack-name ${{ env.STACK_NAME }} \
           --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" \
           --output text \
-          --region ${{ env.AWS_REGION }}) || exit 1
+          --region ${{ env.AWS_REGION }})
         
         WEBSITE_BUCKET=$(aws cloudformation describe-stacks \
           --stack-name ${{ env.STACK_NAME }} \
           --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucket'].OutputValue" \
           --output text \
-          --region ${{ env.AWS_REGION }}) || exit 1
-        
-        LAMBDA_FUNCTION=$(aws cloudformation describe-stacks \
-          --stack-name ${{ env.STACK_NAME }} \
-          --query "Stacks[0].Outputs[?OutputKey=='LambdaFunctionName'].OutputValue" \
-          --output text \
-          --region ${{ env.AWS_REGION }}) || exit 1
-        
-        if [ -z "$API_ENDPOINT" ] || [ -z "$WEBSITE_BUCKET" ] || [ -z "$LAMBDA_FUNCTION" ]; then
-          echo "Failed to get stack outputs"
-          exit 1
-        fi
+          --region ${{ env.AWS_REGION }})
         
         echo "api-endpoint=$API_ENDPOINT" >> $GITHUB_OUTPUT
         echo "website-bucket=$WEBSITE_BUCKET" >> $GITHUB_OUTPUT
-        echo "lambda-function=$LAMBDA_FUNCTION" >> $GITHUB_OUTPUT
 
     - name: Update and deploy website
       run: |

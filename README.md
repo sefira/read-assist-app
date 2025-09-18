@@ -25,6 +25,43 @@ A serverless text-to-speech application with translation capabilities built with
   - Rate limiting (2 seconds between requests)
   - Character limit enforcement (3000 chars)
 
+## Project Implementation Steps
+
+### 1. Frontend Development
+- Created `index.html` with responsive UI
+- Implemented voice selection dropdown
+- Added text input with character limit (3000)
+- Built audio player with download functionality
+- Added rate limiting (2 seconds between requests)
+
+### 2. Backend Lambda Function
+- Developed `index.js` with AWS SDK v3
+- Integrated Amazon Polly for speech synthesis
+- Implemented S3 storage for audio files
+- Added input validation and error handling
+- Generated presigned URLs for secure audio access
+
+### 3. Infrastructure as Code
+- Created `simple-template.cfn.yaml` CloudFormation template
+- Configured S3 buckets (website hosting + audio storage)
+- Set up API Gateway with CORS support
+- Defined IAM roles with least privilege access
+- Added lifecycle policies for automatic cleanup
+
+### 4. CI/CD Pipeline
+- Built GitHub Actions workflow in `.github/workflows/deploy.yml`
+- Automated CloudFormation stack deployment
+- Integrated Lambda function updates
+- Added S3 website deployment
+- Configured AWS credentials as GitHub secrets
+
+### 5. Security Implementation
+- Added Content Security Policy headers
+- Implemented XSS prevention measures
+- Applied input sanitization and validation
+- Enforced HTTPS-only access
+- Set up proper CORS configuration
+
 ## Deployment
 
 ### Prerequisites
@@ -78,3 +115,4 @@ curl -X POST https://your-api-endpoint/prod/tts \
 - 🏃 **Exercise Audio**: Convert text to audio for workouts
 - 🌍 **Language Learning**: Translate and hear text in different languages
 - ♿ **Accessibility**: Audio content for visually impaired users
+

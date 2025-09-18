@@ -9,6 +9,7 @@ on:
 env:
   AWS_REGION: us-east-1
   STACK_NAME: tts-app
+  LAMBDA_FUNCTION_NAME: tts-function
 
 jobs:
   deploy:
@@ -27,63 +28,93 @@ jobs:
 
     - name: Deploy CloudFormation stack
       run: |
+        set -e
         aws cloudformation deploy \
-          --template-file simple-template.yaml \
+          --template-file simple-template.cfn.yaml \
           --stack-name ${{ env.STACK_NAME }} \
           --capabilities CAPABILITY_IAM \
           --region ${{ env.AWS_REGION }} \
-          --no-fail-on-empty-changeset
+          --no-fail-on-empty-changeset || exit 1
 
     - name: Update Lambda function
       run: |
-        zip lambda.zip index.js
-        aws lambda update-function-code \
-          --function-name tts-function \
-          --zip-file fileb://lambda.zip \
-          --region ${{ env.AWS_REGION }}
+        set -e
+        if [ -f index.js ]; then
+          zip lambda.zip index.js
+          LAMBDA_FUNCTION="${{ steps.stack-outputs.outputs.lambda-function }}"
+          aws lambda update-function-code \
+            --function-name "$LAMBDA_FUNCTION" \
+            --zip-file fileb://lambda.zip \
+            --region ${{ env.AWS_REGION }} || exit 1
+        else
+          echo "No separate Lambda file found, using embedded code"
+        fi
 
     - name: Get stack outputs
       id: stack-outputs
       run: |
+        set -e
         API_ENDPOINT=$(aws cloudformation describe-stacks \
           --stack-name ${{ env.STACK_NAME }} \
           --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" \
           --output text \
-          --region ${{ env.AWS_REGION }})
+          --region ${{ env.AWS_REGION }}) || exit 1
         
         WEBSITE_BUCKET=$(aws cloudformation describe-stacks \
           --stack-name ${{ env.STACK_NAME }} \
           --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucket'].OutputValue" \
           --output text \
-          --region ${{ env.AWS_REGION }})
+          --region ${{ env.AWS_REGION }}) || exit 1
+        
+        LAMBDA_FUNCTION=$(aws cloudformation describe-stacks \
+          --stack-name ${{ env.STACK_NAME }} \
+          --query "Stacks[0].Outputs[?OutputKey=='LambdaFunctionName'].OutputValue" \
+          --output text \
+          --region ${{ env.AWS_REGION }}) || exit 1
+        
+        if [ -z "$API_ENDPOINT" ] || [ -z "$WEBSITE_BUCKET" ] || [ -z "$LAMBDA_FUNCTION" ]; then
+          echo "Failed to get stack outputs"
+          exit 1
+        fi
         
         echo "api-endpoint=$API_ENDPOINT" >> $GITHUB_OUTPUT
         echo "website-bucket=$WEBSITE_BUCKET" >> $GITHUB_OUTPUT
+        echo "lambda-function=$LAMBDA_FUNCTION" >> $GITHUB_OUTPUT
 
     - name: Update and deploy website
       run: |
+        set -e
         # Get the API endpoint
         API_ENDPOINT="${{ steps.stack-outputs.outputs.api-endpoint }}"
         echo "API Endpoint: $API_ENDPOINT"
         
+        if [ -z "$API_ENDPOINT" ]; then
+          echo "API endpoint is empty"
+          exit 1
+        fi
+        
         # Replace placeholder
-        sed -i "s|API_ENDPOINT_PLACEHOLDER|$API_ENDPOINT|g" index.html
+        sed -i "s|API_ENDPOINT_PLACEHOLDER|$API_ENDPOINT|g" index.html || exit 1
         
         # Extract domain from API endpoint for CSP
         API_DOMAIN=$(echo "$API_ENDPOINT" | sed 's|https://||' | sed 's|/.*||')
         echo "API Domain: $API_DOMAIN"
         
         # Update CSP header to include the actual API domain
-        sed -i "s|connect-src 'self' https://35cwgrdmfe.execute-api.us-east-1.amazonaws.com|connect-src 'self' https://$API_DOMAIN|g" index.html
+        sed -i "s|https://fcl7xdsfai.execute-api.us-east-1.amazonaws.com|https://$API_DOMAIN|g" index.html || exit 1
         
         # Verify changes
         echo "Checking placeholder replacement:"
-        grep -n "PLACEHOLDER" index.html || echo "All replacements successful"
+        if grep -q "PLACEHOLDER" index.html; then
+          echo "Error: Placeholder still found in HTML"
+          exit 1
+        fi
+        echo "All replacements successful"
         
         # Upload updated file to S3
         aws s3 cp index.html s3://${{ steps.stack-outputs.outputs.website-bucket }}/index.html \
           --content-type "text/html" \
-          --region ${{ env.AWS_REGION }}
+          --region ${{ env.AWS_REGION }} || exit 1
 
     - name: Output website URL
       run: |

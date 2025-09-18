@@ -1,0 +1,290 @@
+# CloudFormation Template
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Simple TTS web app with S3 static hosting
+
+Resources:
+  # S3 Bucket for Website
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'tts-website-${AWS::AccountId}-${AWS::Region}'
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  # S3 Bucket Policy for Website
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub '${WebsiteBucket.Arn}/*'
+          - Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource: 
+              - !Sub '${WebsiteBucket.Arn}/*'
+              - !GetAtt WebsiteBucket.Arn
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+
+  # S3 Bucket for Audio Files
+  AudioBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'tts-audio-${AWS::AccountId}-${AWS::Region}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAudioFiles
+            Status: Enabled
+            ExpirationInDays: 1
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST]
+            AllowedOrigins: ['*']
+            MaxAge: 3000
+
+  # IAM Role for Lambda
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: TTSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: polly:SynthesizeSpeech
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectAcl
+                Resource: !Sub '${AudioBucket.Arn}/*'
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt AudioBucket.Arn
+
+  # Lambda Function
+  TTSFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: tts-function
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Timeout: 30
+      MemorySize: 512
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref AudioBucket
+      Code:
+        ZipFile: |
+          const { PollyClient, SynthesizeSpeechCommand } = require('@aws-sdk/client-polly');
+          const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+          const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+          const crypto = require('crypto');
+
+          const polly = new PollyClient({});
+          const s3 = new S3Client({});
+
+          exports.handler = async (event) => {
+              const headers = {
+                  'Access-Control-Allow-Origin': '*',
+                  'Access-Control-Allow-Headers': 'Content-Type',
+                  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+              };
+
+              if (event.httpMethod === 'OPTIONS') {
+                  return { statusCode: 200, headers, body: '' };
+              }
+
+              try {
+                  const { text, voiceId = 'Joanna' } = JSON.parse(event.body);
+                  
+                  // Input validation
+                  if (!text) {
+                      return {
+                          statusCode: 400,
+                          headers,
+                          body: JSON.stringify({ error: 'Text is required' })
+                      };
+                  }
+                  
+                  if (text.length > 3000) {
+                      return {
+                          statusCode: 400,
+                          headers,
+                          body: JSON.stringify({ error: 'Text exceeds 3000 character limit' })
+                      };
+                  }
+                  
+                  const validVoices = ['Joanna', 'Matthew', 'Amy', 'Brian'];
+                  if (!validVoices.includes(voiceId)) {
+                      return {
+                          statusCode: 400,
+                          headers,
+                          body: JSON.stringify({ error: 'Invalid voice ID' })
+                      };
+                  }
+
+                  const pollyCommand = new SynthesizeSpeechCommand({
+                      Text: text,
+                      OutputFormat: 'mp3',
+                      VoiceId: voiceId
+                  });
+                  const pollyResult = await polly.send(pollyCommand);
+                  
+                  const fileName = `audio-${crypto.randomUUID()}.mp3`;
+                  
+                  const putCommand = new PutObjectCommand({
+                      Bucket: process.env.S3_BUCKET_NAME,
+                      Key: fileName,
+                      Body: pollyResult.AudioStream,
+                      ContentType: 'audio/mpeg'
+                  });
+                  await s3.send(putCommand);
+
+                  const getCommand = new GetObjectCommand({
+                      Bucket: process.env.S3_BUCKET_NAME,
+                      Key: fileName
+                  });
+                  const audioUrl = await getSignedUrl(s3, getCommand, { expiresIn: 3600 });
+
+                  return {
+                      statusCode: 200,
+                      headers,
+                      body: JSON.stringify({ audioUrl })
+                  };
+
+              } catch (error) {
+                  console.error('TTS Error:', error);
+                  return {
+                      statusCode: 500,
+                      headers,
+                      body: JSON.stringify({ error: 'Internal server error' })
+                  };
+              }
+          };
+
+  # API Gateway
+  TTSApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: tts-api
+      EndpointConfiguration:
+        Types: [REGIONAL]
+
+  TTSResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TTSApi
+      ParentId: !GetAtt TTSApi.RootResourceId
+      PathPart: tts
+
+  TTSMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TTSApi
+      ResourceId: !Ref TTSResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TTSFunction.Arn}/invocations'
+
+  TTSOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TTSApi
+      ResourceId: !Ref TTSResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  TTSDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: [TTSMethod, TTSOptionsMethod]
+    Properties:
+      RestApiId: !Ref TTSApi
+      StageName: prod
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref TTSFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TTSApi}/*/*'
+
+Outputs:
+  WebsiteURL:
+    Description: S3 website URL
+    Value: !GetAtt WebsiteBucket.WebsiteURL
+  
+  WebsiteBucket:
+    Description: S3 bucket for website files
+    Value: !Ref WebsiteBucket
+    
+  AudioBucket:
+    Description: S3 bucket for audio files
+    Value: !Ref AudioBucket
+    
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${TTSApi}.execute-api.${AWS::Region}.amazonaws.com/prod/tts'
+    
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref TTSFunction

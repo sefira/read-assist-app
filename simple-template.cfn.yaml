@@ -33,15 +33,6 @@ Resources:
             Principal: '*'
             Action: s3:GetObject
             Resource: !Sub '${WebsiteBucket.Arn}/*'
-          - Effect: Deny
-            Principal: '*'
-            Action: s3:*
-            Resource: 
-              - !Sub '${WebsiteBucket.Arn}/*'
-              - !GetAtt WebsiteBucket.Arn
-            Condition:
-              Bool:
-                'aws:SecureTransport': 'false'
 
   # S3 Bucket for Audio Files
   AudioBucket:

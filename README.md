@@ -12,13 +12,13 @@ A serverless text-to-speech application with translation capabilities built with
 
 ## Features
 
-- ✅ Convert text to speech using Amazon Polly
-- ✅ Multiple voice options (Joanna, Matthew, Amy, Brian)
-- ✅ In-browser audio playback
-- ✅ Download MP3 files
-- ✅ Serverless architecture
-- ✅ Automated deployment pipeline
-- ✅ **Security Features**:
+- Convert text to speech using Amazon Polly
+- Multiple voice options (Joanna, Matthew, Amy, Brian)
+- In-browser audio playback
+- Download MP3 files
+- Serverless architecture
+- Automated deployment pipeline
+- **Security Features**:
   - Content Security Policy (CSP) headers
   - XSS prevention with safe DOM manipulation
   - Input sanitization and validation
@@ -110,9 +110,9 @@ curl -X POST https://your-api-endpoint/prod/tts \
 
 ## Use Cases
 
-- 📚 **Reading Assistant**: Convert books/articles to audio for hands-free consumption
-- 🚗 **Driving Companion**: Listen to content while driving
-- 🏃 **Exercise Audio**: Convert text to audio for workouts
-- 🌍 **Language Learning**: Translate and hear text in different languages
-- ♿ **Accessibility**: Audio content for visually impaired users
+- **Reading Assistant**: Convert books/articles to audio for hands-free consumption
+- **Driving Companion**: Listen to content while driving
+- **Exercise Audio**: Convert text to audio for workouts
+- **Language Learning**: Translate and hear text in different languages
+- **Accessibility**: Audio content for visually impaired users
 

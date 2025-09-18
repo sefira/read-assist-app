@@ -284,20 +284,3 @@ Outputs:
   LambdaFunctionName:
     Description: Lambda function name
     Value: !Ref TTSFunction
-    Value: !GetAtt WebsiteBucket.WebsiteURL
-  
-  WebsiteBucket:
-    Description: S3 bucket for website files
-    Value: !Ref WebsiteBucket
-    
-  AudioBucket:
-    Description: S3 bucket for audio files
-    Value: !Ref AudioBucket
-    
-  ApiEndpoint:
-    Description: API Gateway endpoint URL
-    Value: !Sub 'https://${TTSApi}.execute-api.${AWS::Region}.amazonaws.com/prod/tts'
-    
-  LambdaFunctionName:
-    Description: Lambda function name
-    Value: !Ref TTSFunction

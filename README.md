@@ -76,4 +76,5 @@ curl -X POST https://your-api-endpoint/prod/tts \
 - 📚 **Reading Assistant**: Convert books/articles to audio for hands-free consumption
 - 🚗 **Driving Companion**: Listen to content while driving
 - 🏃 **Exercise Audio**: Convert text to audio for workouts
+- 🌍 **Language Learning**: Translate and hear text in different languages
 - ♿ **Accessibility**: Audio content for visually impaired users

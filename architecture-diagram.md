@@ -1,4 +1,10 @@
 # ReadAssist TTS Application Architecture
+<img width="3844" height="1524" alt="image" src="https://github.com/user-attachments/assets/aa4a09db-724e-4841-9232-a1e4de59de64" />
+
+
+
+
+
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐

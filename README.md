@@ -96,7 +96,7 @@ curl -X POST https://your-api-endpoint/prod/tts \
 
 - `index.html` - Frontend web interface
 - `index.js` - Lambda function code
-- `simple-template.yaml` - CloudFormation template
+- `simple-template.cfn.yaml` - CloudFormation template
 - `.github/workflows/deploy.yml` - CI/CD pipeline
 
 ## AWS Services Used

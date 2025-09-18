@@ -271,6 +271,19 @@ Resources:
 Outputs:
   WebsiteURL:
     Description: S3 website URL
+    Value: !Sub 'http://${WebsiteBucket}.s3-website-${AWS::Region}.amazonaws.com'
+  
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${TTSApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+  
+  WebsiteBucket:
+    Description: S3 website bucket name
+    Value: !Ref WebsiteBucket
+  
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref TTSFunction
     Value: !GetAtt WebsiteBucket.WebsiteURL
   
   WebsiteBucket:
